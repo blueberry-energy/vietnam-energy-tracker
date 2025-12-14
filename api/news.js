@@ -1,13 +1,22 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Anthropic from "@anthropic-ai/sdk";
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-05-20" });
-    const prompt = "Find 6 recent Vietnam renewable energy news articles. Return JSON array only: [{id,title,source,date,category,url,summary}]. Categories: Solar,Wind,Storage,Policy,Investment,Grid";
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    
+    const message = await client.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1024,
+      messages: [
+        {
+          role: "user",
+          content: "Find 6 recent Vietnam renewable energy news articles from 2024-2025. Return ONLY a JSON array, no other text: [{\"id\":1,\"title\":\"...\",\"source\":\"...\",\"date\":\"2025-01-10\",\"category\":\"Solar\",\"url\":\"https://...\",\"summary\":\"...\"}]. Categories: Solar, Wind, Storage, Policy, Investment, Grid"
+        }
+      ]
+    });
+
+    const text = message.content[0].text;
     const match = text.match(/\[[\s\S]*\]/);
     if (match) {
       res.status(200).json(JSON.parse(match[0]));
