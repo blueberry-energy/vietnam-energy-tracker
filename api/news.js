@@ -13,42 +13,39 @@ export default async function handler(req, res) {
     
     const message = await client.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 2048,
+      max_tokens: 4096,
       messages: [
         {
           role: "user",
-          content: `Find 8-10 recent Vietnam renewable energy news articles published ONLY between ${weekAgoStr} and ${todayStr} (last 7 days).
+          content: `Find 6 recent Vietnam renewable energy news articles from the last 7 days (${weekAgoStr} to ${todayStr}).
 
-IMPORTANT REQUIREMENTS:
-1. Include BOTH Vietnamese language sources (VnExpress, Tuoi Tre, Thanh Nien, VietnamNet, Bao Dien Tu) AND English language sources (Reuters, Nikkei Asia, Vietnam News, Vietnam Investment Review, PV Magazine)
-2. For Vietnamese language articles: Provide the summary in ENGLISH, but keep the original Vietnamese URL
-3. Only include articles from the last 7 days (${weekAgoStr} to ${todayStr})
-4. Focus on: solar power, wind energy, government policy, foreign investment, EVN announcements, battery storage
+Include both Vietnamese sources (VnExpress, Tuoi Tre, VietnamNet) and English sources (Reuters, Vietnam News, Nikkei Asia). For Vietnamese articles, write the summary in English but keep the original URL.
 
-Return ONLY a JSON array with this exact format:
-[{"id":1,"title":"English title here","source":"Source Name","date":"YYYY-MM-DD","category":"Solar","url":"https://original-url.com","summary":"English summary here","language":"vi"}]
+Return a JSON array only, no other text:
+[{"id":1,"title":"Title","source":"Source","date":"${todayStr}","category":"Solar","url":"https://...","summary":"Summary","language":"vi"}]
 
-Categories must be: Solar, Wind, Storage, Policy, Investment, or Grid
-Language field must be: "vi" for Vietnamese sources, "en" for English sources`
+Categories: Solar, Wind, Storage, Policy, Investment, Grid
+Language: "vi" for Vietnamese, "en" for English`
         }
       ]
     });
 
     const text = message.content[0].text;
-    const match = text.match(/\[[\s\S]*\]/);
     
-    if (match) {
-      const news = JSON.parse(match[0]);
-      const searchResult = {
-        searchDate: todayStr,
-        dateRange: { from: weekAgoStr, to: todayStr },
-        articles: news
-      };
-      res.status(200).json(searchResult);
-    } else {
-      res.status(500).json({ error: "Parse failed" });
+    // Try to find JSON array in response
+    let jsonStr = text;
+    if (text.includes('[')) {
+      jsonStr = text.substring(text.indexOf('['), text.lastIndexOf(']') + 1);
     }
+    
+    const news = JSON.parse(jsonStr);
+    
+    res.status(200).json({
+      searchDate: todayStr,
+      dateRange: { from: weekAgoStr, to: todayStr },
+      articles: news
+    });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: e.message, details: e.toString() });
   }
 }
