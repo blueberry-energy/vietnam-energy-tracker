@@ -14,24 +14,41 @@ export default async function handler(req, res) {
     const message = await client.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 4096,
+      tools: [{
+        type: "web_search_20250305",
+        name: "web_search"
+      }],
       messages: [
         {
           role: "user",
-          content: `Generate a JSON array of 6 example Vietnam renewable energy news articles that could have been published between ${weekAgoStr} and ${todayStr}.
+          content: `Search for real Vietnam renewable energy news articles published in the last 7 days (${weekAgoStr} to ${todayStr}).
 
-Mix of Vietnamese sources (VnExpress, Tuoi Tre) and English sources (Reuters, Vietnam News). For Vietnamese sources, write summary in English.
+Search for:
+1. Vietnam solar energy news
+2. Vietnam wind power news  
+3. Vietnam renewable energy policy
+4. Vietnam EVN electricity news
 
-Output ONLY the JSON array, nothing else:
-[{"id":1,"title":"Example headline","source":"VnExpress","date":"${todayStr}","category":"Solar","url":"https://vnexpress.net/example","summary":"Example summary in English","language":"vi"},{"id":2,"title":"Another headline","source":"Reuters","date":"${weekAgoStr}","category":"Wind","url":"https://reuters.com/example","summary":"Another summary","language":"en"}]
+After searching, compile a list of 6-8 REAL articles with ACTUAL working URLs.
 
-Use categories: Solar, Wind, Storage, Policy, Investment, Grid`
+Return ONLY a JSON array with real URLs from your search results:
+[{"id":1,"title":"Actual headline","source":"Actual source","date":"YYYY-MM-DD","category":"Solar","url":"https://actual-url.com/article","summary":"Brief summary","language":"en"}]
+
+Categories: Solar, Wind, Storage, Policy, Investment, Grid
+Language: "vi" for Vietnamese sites, "en" for English sites`
         }
       ]
     });
 
-    const text = message.content[0].text.trim();
+    // Extract text from response (may have multiple content blocks due to tool use)
+    let text = "";
+    for (const block of message.content) {
+      if (block.type === "text") {
+        text += block.text;
+      }
+    }
     
-    let jsonStr = text;
+    let jsonStr = text.trim();
     if (text.includes('[')) {
       jsonStr = text.substring(text.indexOf('['), text.lastIndexOf(']') + 1);
     }
