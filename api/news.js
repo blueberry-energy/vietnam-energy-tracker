@@ -17,22 +17,20 @@ export default async function handler(req, res) {
       messages: [
         {
           role: "user",
-          content: `Find 6 recent Vietnam renewable energy news articles from the last 7 days (${weekAgoStr} to ${todayStr}).
+          content: `Generate a JSON array of 6 example Vietnam renewable energy news articles that could have been published between ${weekAgoStr} and ${todayStr}.
 
-Include both Vietnamese sources (VnExpress, Tuoi Tre, VietnamNet) and English sources (Reuters, Vietnam News, Nikkei Asia). For Vietnamese articles, write the summary in English but keep the original URL.
+Mix of Vietnamese sources (VnExpress, Tuoi Tre) and English sources (Reuters, Vietnam News). For Vietnamese sources, write summary in English.
 
-Return a JSON array only, no other text:
-[{"id":1,"title":"Title","source":"Source","date":"${todayStr}","category":"Solar","url":"https://...","summary":"Summary","language":"vi"}]
+Output ONLY the JSON array, nothing else:
+[{"id":1,"title":"Example headline","source":"VnExpress","date":"${todayStr}","category":"Solar","url":"https://vnexpress.net/example","summary":"Example summary in English","language":"vi"},{"id":2,"title":"Another headline","source":"Reuters","date":"${weekAgoStr}","category":"Wind","url":"https://reuters.com/example","summary":"Another summary","language":"en"}]
 
-Categories: Solar, Wind, Storage, Policy, Investment, Grid
-Language: "vi" for Vietnamese, "en" for English`
+Use categories: Solar, Wind, Storage, Policy, Investment, Grid`
         }
       ]
     });
 
-    const text = message.content[0].text;
+    const text = message.content[0].text.trim();
     
-    // Try to find JSON array in response
     let jsonStr = text;
     if (text.includes('[')) {
       jsonStr = text.substring(text.indexOf('['), text.lastIndexOf(']') + 1);
@@ -46,6 +44,6 @@ Language: "vi" for Vietnamese, "en" for English`
       articles: news
     });
   } catch (e) {
-    res.status(500).json({ error: e.message, details: e.toString() });
+    res.status(500).json({ error: e.message });
   }
 }
